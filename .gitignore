@@ -1,0 +1,18 @@
+# dependencies
+/node_modules
+
+# builds and local platform state
+/.next/
+/.vinext/
+/dist/
+/.wrangler/
+/coverage/
+/outputs/
+/work/
+
+# generated/local files
+.env*
+!.env.example
+next-env.d.ts
+*.log
+.DS_Store
