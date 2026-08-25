@@ -59,7 +59,17 @@ export function App() {
 
   if (loading) return <main className="app-state"><div className="state-card"><span className="state-spinner" aria-hidden="true" /><h1>Opening the gallery</h1><p>Loading the public archive and checking your editor session.</p></div></main>;
 
-  if (error) return <main className="app-state"><div className="state-card"><p className="eyebrow">SETUP REQUIRED</p><h1>The GitHub-ready frontend is built.</h1><p>{error}</p><p>Apply the Supabase migration and add the two repository variables described in <code>SUPABASE_SETUP.md</code>.</p><button className="button" type="button" onClick={() => void load()}>Try again</button></div></main>;
+  if (error) {
+    const isSetupError = Boolean(configurationError);
+    return <main className="app-state"><div className="state-card">
+      <p className="eyebrow">{isSetupError ? 'SETUP REQUIRED' : 'CONNECTION PROBLEM'}</p>
+      <h1>{isSetupError ? 'Connect the gallery backend.' : 'The gallery is temporarily unavailable.'}</h1>
+      <p>{error}</p>
+      {isSetupError && <p>Apply the Supabase migration and add the two repository variables described in <code>SUPABASE_SETUP.md</code>.</p>}
+      {!isSetupError && <p>Your content is safe. Check the connection and try again.</p>}
+      <button className="button" type="button" onClick={() => void load()}>Try again</button>
+    </div></main>;
+  }
 
   return <>
     <GalleryClient

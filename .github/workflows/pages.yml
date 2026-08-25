@@ -29,6 +29,12 @@ jobs:
           node-version: 22
       - name: Enable pnpm
         run: corepack enable
+      - name: Verify Supabase configuration
+        run: |
+          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY as repository variables before deploying."
+            exit 1
+          fi
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check source

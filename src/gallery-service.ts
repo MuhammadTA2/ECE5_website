@@ -5,6 +5,7 @@ import { LEGAL_POLICY_VERSION } from '@/lib/legal-shared';
 import { supabase, throwIfUnconfigured } from './supabase';
 
 const IMAGE_BUCKET = 'gallery-images';
+const SIGNED_IMAGE_URL_LIFETIME_SECONDS = 60 * 60;
 
 type SettingsRow = { title: string; subtitle: string };
 type MetaRow = { revision: number };
@@ -52,7 +53,7 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
   const meta = metaResult.data as MetaRow;
   const photoRows = (photosResult.data ?? []) as PhotoRow[];
   const signedUrls = photoRows.length
-    ? await supabase.storage.from(IMAGE_BUCKET).createSignedUrls(photoRows.map((row) => row.storage_path), 600)
+    ? await supabase.storage.from(IMAGE_BUCKET).createSignedUrls(photoRows.map((row) => row.storage_path), SIGNED_IMAGE_URL_LIFETIME_SECONDS)
     : { data: [], error: null };
   throwDataError(signedUrls.error);
   const imageUrls = new Map((signedUrls.data ?? []).map((item) => [item.path, item.signedUrl]));

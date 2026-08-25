@@ -53,5 +53,13 @@ describe('security invariants', () => {
     expect(workflow).toContain('actions/upload-pages-artifact@v4');
     expect(workflow).toContain('actions/deploy-pages@v4');
     expect(workflow).toContain('pages: write');
+    expect(workflow).toContain('Verify Supabase configuration');
+    expect(workflow).toContain('if [ -z "$VITE_SUPABASE_URL" ]');
+  });
+
+  it('renews signed image URLs before they expire', () => {
+    expect(read('src/gallery-service.ts')).toContain('SIGNED_IMAGE_URL_LIFETIME_SECONDS');
+    expect(read('app/gallery-client.tsx')).toContain('SIGNED_IMAGE_REFRESH_INTERVAL_MS');
+    expect(read('app/gallery-client.tsx')).toContain("window.addEventListener('focus', onFocus)");
   });
 });

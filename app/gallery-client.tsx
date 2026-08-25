@@ -3,6 +3,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import type { GalleryPhoto, GallerySnapshot, ViewerState } from '@/lib/types';
+import { retryableUploadIndexes, uploadFileIdentity, type UploadQueueStatus } from '@/lib/upload-queue';
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_UPLOADS_PER_BATCH } from '@/lib/validation';
 import {
   inviteCollaborator,
@@ -30,7 +31,9 @@ type ModalState =
   | null;
 
 type ToastState = { message: string; actionLabel?: string; action?: () => void } | null;
-type UploadItem = { file: File; progress: number; status: 'ready' | 'uploading' | 'done' | 'error'; error?: string };
+type UploadItem = { file: File; progress: number; status: UploadQueueStatus; error?: string };
+
+const SIGNED_IMAGE_REFRESH_INTERVAL_MS = 45 * 60 * 1000;
 
 export function GalleryClient({
   initialSnapshot,
@@ -48,12 +51,45 @@ export function GalleryClient({
   signOutPath?: string;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
+  const [sourceSnapshot, setSourceSnapshot] = useState(initialSnapshot);
   const [query, setQuery] = useState('');
   const [tag, setTag] = useState('all');
   const [manage, setManage] = useState(false);
   const [modal, setModal] = useState<ModalState>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [busy, setBusy] = useState(false);
+
+  if (sourceSnapshot !== initialSnapshot) {
+    setSourceSnapshot(initialSnapshot);
+    setSnapshot(initialSnapshot);
+  }
+
+  useEffect(() => {
+    let disposed = false;
+    let lastRefresh = Date.now();
+    async function refreshSignedImages() {
+      if (document.hidden) return;
+      try {
+        const updated = await getGallerySnapshot();
+        if (!disposed) {
+          setSnapshot(updated);
+          lastRefresh = Date.now();
+        }
+      } catch {
+        // Keep the last known gallery visible; the manual refresh surfaces errors.
+      }
+    }
+    const interval = window.setInterval(() => void refreshSignedImages(), SIGNED_IMAGE_REFRESH_INTERVAL_MS);
+    const onFocus = () => {
+      if (Date.now() - lastRefresh >= SIGNED_IMAGE_REFRESH_INTERVAL_MS) void refreshSignedImages();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   const tags = useMemo(() => [...new Set(snapshot.photos.flatMap((photo) => photo.tags))].sort(), [snapshot.photos]);
   const filtered = useMemo(() => {
@@ -261,7 +297,7 @@ export function GalleryClient({
 
       <footer><span>Project Gallery</span><nav aria-label="Legal information"><a href="#/privacy">Privacy Policy</a><a href="#/terms">Terms of Use</a></nav><span>GitHub-hosted · email authenticated · recoverable</span></footer>
 
-      {modal?.type === 'upload' && <UploadModal onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Photos added.' }); }} />}
+      {modal?.type === 'upload' && <UploadModal onClose={() => setModal(null)} onSnapshot={setSnapshot} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Photos added.' }); }} />}
       {modal?.type === 'settings' && <SettingsModal snapshot={snapshot} onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Gallery details saved.' }); }} />}
       {modal?.type === 'edit' && <EditPhotoModal photo={modal.photo} onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Photo details saved.' }); }} />}
       {modal?.type === 'collaborators' && <CollaboratorsModal onClose={() => setModal(null)} />}
@@ -281,22 +317,28 @@ function AccountMenu({ viewer, onSignIn, onSignOut }: { viewer: ViewerState; onS
   return <div className="account"><span className="avatar" aria-hidden="true">{(viewer.displayName ?? 'U').slice(0, 1).toUpperCase()}</span><span><strong>{viewer.displayName}</strong><small>{viewer.isOwner ? 'Owner' : viewer.isEditor ? 'Editor' : 'Viewer'}</small></span><button className="account-signout" type="button" onClick={onSignOut}>Sign out</button></div>;
 }
 
-function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete: (snapshot: GallerySnapshot) => void }) {
+function UploadModal({ onClose, onSnapshot, onComplete }: { onClose: () => void; onSnapshot: (snapshot: GallerySnapshot) => void; onComplete: (snapshot: GallerySnapshot) => void }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [caption, setCaption] = useState('');
   const [tags, setTags] = useState('');
   const [rightsConfirmed, setRightsConfirmed] = useState(false);
   const [error, setError] = useState('');
   const uploading = items.some((item) => item.status === 'uploading');
+  const retryableIndexes = retryableUploadIndexes(items);
 
   function addFiles(files: File[]) {
     setError('');
-    const accepted = files.slice(0, MAX_UPLOADS_PER_BATCH).filter((file) => {
+    const existing = new Set(items.map((item) => uploadFileIdentity(item.file)));
+    const availableSlots = Math.max(0, MAX_UPLOADS_PER_BATCH - items.length);
+    const accepted = files.filter((file) => {
       if (!ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_UPLOAD_BYTES || file.size < 1) return false;
+      const identity = uploadFileIdentity(file);
+      if (existing.has(identity)) return false;
+      existing.add(identity);
       return true;
-    });
+    }).slice(0, availableSlots);
     if (accepted.length !== files.length) setError(`Some files were skipped. Use up to ${MAX_UPLOADS_PER_BATCH} JPEG, PNG, WebP, or GIF images under 8 MB each.`);
-    setItems((current) => [...current, ...accepted.map((file) => ({ file, progress: 0, status: 'ready' as const }))].slice(0, MAX_UPLOADS_PER_BATCH));
+    setItems((current) => [...current, ...accepted.map((file) => ({ file, progress: 0, status: 'ready' as const }))]);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
@@ -308,20 +350,29 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
     event.preventDefault();
     if (!items.length) { setError('Choose at least one image.'); return; }
     if (!rightsConfirmed) { setError('Confirm that you have the rights and permissions required for these photos.'); return; }
+    const pendingIndexes = retryableUploadIndexes(items);
+    if (!pendingIndexes.length) return;
+    setError('');
     let latest: GallerySnapshot | null = null;
-    for (let index = 0; index < items.length; index += 1) {
+    let failureCount = 0;
+    for (const index of pendingIndexes) {
       const item = items[index];
-      setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'uploading', progress: 0 } : entry));
+      setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'uploading', progress: 0, error: undefined } : entry));
       try {
         latest = await uploadPhoto(item.file, caption, tags, rightsConfirmed, (progress) => {
           setItems((current) => current.map((entry, i) => i === index ? { ...entry, progress } : entry));
         });
         setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'done', progress: 100 } : entry));
       } catch (uploadError) {
+        failureCount += 1;
         setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'error', error: errorMessage(uploadError) } : entry));
       }
     }
-    if (latest) onComplete(latest);
+    if (failureCount === 0 && latest) onComplete(latest);
+    else {
+      if (latest) onSnapshot(latest);
+      setError(`${failureCount} ${failureCount === 1 ? 'photo was' : 'photos were'} not uploaded. Successful photos were saved; retry uploads only the failed files.`);
+    }
   }
 
   return <Modal title="Add project photos" onClose={() => !uploading && onClose()} wide>
@@ -329,14 +380,14 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
     <form onSubmit={submit}>
       <div className="dropzone" onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
         <span aria-hidden="true">＋</span><strong>Drop images here</strong><p>or choose them from your device</p>
-        <label className="button"><input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => addFiles([...(event.target.files ?? [])])} />Choose photos</label>
+        <label className="button"><input type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { addFiles([...(event.target.files ?? [])]); event.currentTarget.value = ''; }} />Choose photos</label>
       </div>
-      {items.length > 0 && <div className="upload-list">{items.map((item, index) => <div key={`${item.file.name}-${item.file.lastModified}`}><span className="upload-name">{item.file.name}<small>{formatBytes(item.file.size)}</small></span><span className={`upload-status ${item.status}`}>{item.status === 'uploading' ? `${item.progress}%` : item.status}</span><button type="button" aria-label={`Remove ${item.file.name}`} disabled={uploading} onClick={() => setItems((current) => current.filter((_, i) => i !== index))}>×</button><span className="progress" style={{ '--progress': `${item.progress}%` } as CSSProperties} />{item.error && <small className="field-error">{item.error}</small>}</div>)}</div>}
+      {items.length > 0 && <div className="upload-list">{items.map((item, index) => <div key={uploadFileIdentity(item.file)}><span className="upload-name">{item.file.name}<small>{formatBytes(item.file.size)}</small></span><span className={`upload-status ${item.status}`}>{item.status === 'uploading' ? `${item.progress}%` : item.status}</span><button type="button" aria-label={`Remove ${item.file.name}`} disabled={uploading} onClick={() => setItems((current) => current.filter((_, i) => i !== index))}>×</button><span className="progress" style={{ '--progress': `${item.progress}%` } as CSSProperties} />{item.error && <small className="field-error">{item.error}</small>}</div>)}</div>}
       <label className="field"><span>Description for this batch <small>optional</small></span><textarea value={caption} maxLength={600} onChange={(event) => setCaption(event.target.value)} placeholder="What changed, worked, or surprised you?" /></label>
       <label className="field"><span>Tags <small>comma separated</small></span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="prototype, testing, pcb" /></label>
       <label className="consent-check"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} /><span>I own these images or have permission to use them, have obtained any consent required for identifiable people, and agree to the <a href="#/terms">Terms of Use</a> and <a href="#/privacy">Privacy Policy</a>.</span></label>
       {error && <p className="field-error" role="alert">{error}</p>}
-      <div className="modal-actions"><button className="button" type="button" disabled={uploading} onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={uploading || !items.length || !rightsConfirmed}>{uploading ? 'Uploading…' : `Upload ${items.length || ''} ${items.length === 1 ? 'photo' : 'photos'}`}</button></div>
+      <div className="modal-actions"><button className="button" type="button" disabled={uploading} onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={uploading || !retryableIndexes.length || !rightsConfirmed}>{uploading ? 'Uploading…' : `${items.some((item) => item.status === 'done') ? 'Retry' : 'Upload'} ${retryableIndexes.length || ''} ${retryableIndexes.length === 1 ? 'photo' : 'photos'}`}</button></div>
     </form>
   </Modal>;
 }
