@@ -14,6 +14,7 @@ export default async function Home() {
   const viewer: ViewerState = {
     isSignedIn: Boolean(user),
     isEditor: access.isEditor,
+    isOwner: false,
     canClaimOwnership: access.canClaimOwnership,
     displayName: user?.displayName ?? null,
     email: user?.email ?? null,

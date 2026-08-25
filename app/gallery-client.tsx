@@ -4,12 +4,28 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import type { GalleryPhoto, GallerySnapshot, ViewerState } from '@/lib/types';
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MAX_UPLOADS_PER_BATCH } from '@/lib/validation';
+import {
+  inviteCollaborator,
+  listCollaborators,
+  removeCollaborator,
+  removePhoto,
+  reorderPhotos,
+  restorePhoto as restoreGalleryPhoto,
+  revokeInvite,
+  updatePhoto,
+  updateSettings,
+  uploadPhoto,
+  getGallerySnapshot,
+  type Collaborator,
+  type CollaboratorInvite,
+} from '@/src/gallery-service';
 
 type ModalState =
   | { type: 'upload' }
   | { type: 'settings' }
   | { type: 'edit'; photo: GalleryPhoto }
   | { type: 'delete'; photo: GalleryPhoto }
+  | { type: 'collaborators' }
   | { type: 'lightbox'; photoId: string }
   | null;
 
@@ -19,13 +35,17 @@ type UploadItem = { file: File; progress: number; status: 'ready' | 'uploading' 
 export function GalleryClient({
   initialSnapshot,
   viewer,
+  onSignIn,
+  onSignOut,
   signInPath,
   signOutPath,
 }: {
   initialSnapshot: GallerySnapshot;
   viewer: ViewerState;
-  signInPath: string;
-  signOutPath: string;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
+  signInPath?: string;
+  signOutPath?: string;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [query, setQuery] = useState('');
@@ -53,23 +73,11 @@ export function GalleryClient({
 
   async function refresh(message?: string) {
     try {
-      const response = await fetch('/api/gallery', { cache: 'no-store' });
-      const data = await readJson<GallerySnapshot>(response);
+      const data = await getGallerySnapshot();
       setSnapshot(data);
       if (message) setToast({ message });
     } catch (error) {
       setToast({ message: errorMessage(error) });
-    }
-  }
-
-  async function claimOwnership() {
-    setBusy(true);
-    try {
-      await mutate<{ ok: true }>('/api/setup', { method: 'POST' });
-      window.location.reload();
-    } catch (error) {
-      setToast({ message: errorMessage(error) });
-      setBusy(false);
     }
   }
 
@@ -82,10 +90,7 @@ export function GalleryClient({
     [ids[from], ids[to]] = [ids[to], ids[from]];
     setSnapshot((current) => ({ ...current, photos: ids.map((id) => current.photos.find((photo) => photo.id === id)!) }));
     try {
-      const updated = await mutate<GallerySnapshot>('/api/photos/reorder', {
-        method: 'POST',
-        body: JSON.stringify({ ids, expectedRevision: snapshot.revision }),
-      });
+      const updated = await reorderPhotos(ids, snapshot.revision);
       setSnapshot(updated);
       setToast({
         message: 'Order saved.',
@@ -100,10 +105,7 @@ export function GalleryClient({
 
   async function restoreOrder(ids: string[], expectedRevision: number) {
     try {
-      const updated = await mutate<GallerySnapshot>('/api/photos/reorder', {
-        method: 'POST',
-        body: JSON.stringify({ ids, expectedRevision }),
-      });
+      const updated = await reorderPhotos(ids, expectedRevision);
       setSnapshot(updated);
       setToast({ message: 'Previous order restored.' });
     } catch (error) {
@@ -114,11 +116,8 @@ export function GalleryClient({
   async function deletePhoto(photo: GalleryPhoto) {
     setBusy(true);
     try {
-      const result = await mutate<{ snapshot: GallerySnapshot; deletedId: string }>(`/api/photos/${encodeURIComponent(photo.id)}`, {
-        method: 'DELETE',
-        body: JSON.stringify({ expectedVersion: photo.version }),
-      });
-      setSnapshot(result.snapshot);
+      const updated = await removePhoto(photo.id, photo.version);
+      setSnapshot(updated);
       setModal(null);
       setToast({
         message: 'Photo moved out of the gallery.',
@@ -134,7 +133,7 @@ export function GalleryClient({
 
   async function restorePhoto(id: string) {
     try {
-      const updated = await mutate<GallerySnapshot>(`/api/photos/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+      const updated = await restoreGalleryPhoto(id);
       setSnapshot(updated);
       setToast({ message: 'Photo restored.' });
     } catch (error) {
@@ -144,9 +143,8 @@ export function GalleryClient({
 
   async function exportBackup() {
     try {
-      const response = await fetch('/api/export', { method: 'POST' });
-      if (!response.ok) throw new Error((await response.json().catch(() => null))?.error ?? 'Could not export the gallery.');
-      const url = URL.createObjectURL(await response.blob());
+      const backup = JSON.stringify({ exportedAt: new Date().toISOString(), ...snapshot }, null, 2);
+      const url = URL.createObjectURL(new Blob([backup], { type: 'application/json' }));
       const link = document.createElement('a');
       link.href = url;
       link.download = 'project-gallery-backup.json';
@@ -175,7 +173,7 @@ export function GalleryClient({
         <div className="circuit" aria-hidden="true"><span /><span /><span /></div>
         <div className="status-line">
           <span className="status-pill"><span className="status-dot" />{viewer.isEditor ? 'SECURE EDITOR SESSION' : 'GALLERY ONLINE · READ ONLY'}</span>
-          <AccountMenu viewer={viewer} signInPath={signInPath} signOutPath={signOutPath} busy={busy} onClaim={claimOwnership} />
+          <AccountMenu viewer={viewer} onSignIn={onSignIn ?? (() => { if (signInPath) window.location.assign(signInPath); })} onSignOut={onSignOut ?? (() => { if (signOutPath) window.location.assign(signOutPath); })} />
         </div>
         <div className="hero-copy">
           <p className="eyebrow">ECE5 · BUILD ARCHIVE</p>
@@ -207,6 +205,7 @@ export function GalleryClient({
           <div className="toolbar-actions">
             {manage && viewer.isEditor && <>
               <button className="button" type="button" onClick={() => setModal({ type: 'settings' })}>Gallery settings</button>
+              {viewer.isOwner && <button className="button" type="button" onClick={() => setModal({ type: 'collaborators' })}>Collaborators</button>}
               <button className="button" type="button" onClick={() => void exportBackup()}>Export backup</button>
               <button className="button button-primary" type="button" onClick={() => setModal({ type: 'upload' })}>＋ Add photos</button>
             </>}
@@ -260,11 +259,12 @@ export function GalleryClient({
         )}
       </section>
 
-      <footer><span>Project Gallery</span><span>Server-backed · authenticated · recoverable</span></footer>
+      <footer><span>Project Gallery</span><nav aria-label="Legal information"><a href="#/privacy">Privacy Policy</a><a href="#/terms">Terms of Use</a></nav><span>GitHub-hosted · email authenticated · recoverable</span></footer>
 
       {modal?.type === 'upload' && <UploadModal onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Photos added.' }); }} />}
       {modal?.type === 'settings' && <SettingsModal snapshot={snapshot} onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Gallery details saved.' }); }} />}
       {modal?.type === 'edit' && <EditPhotoModal photo={modal.photo} onClose={() => setModal(null)} onComplete={(updated) => { setSnapshot(updated); setModal(null); setToast({ message: 'Photo details saved.' }); }} />}
+      {modal?.type === 'collaborators' && <CollaboratorsModal onClose={() => setModal(null)} />}
       {modal?.type === 'delete' && <Modal title="Remove this photo?" onClose={() => !busy && setModal(null)}>
         <p className="modal-intro">It will disappear from the gallery, but you can undo the removal immediately afterward.</p>
         <div className="modal-actions"><button className="button" type="button" onClick={() => setModal(null)}>Cancel</button><button className="button button-danger" type="button" disabled={busy} onClick={() => void deletePhoto(modal.photo)}>{busy ? 'Removing…' : 'Remove photo'}</button></div>
@@ -276,16 +276,16 @@ export function GalleryClient({
   );
 }
 
-function AccountMenu({ viewer, signInPath, signOutPath, busy, onClaim }: { viewer: ViewerState; signInPath: string; signOutPath: string; busy: boolean; onClaim: () => void }) {
-  if (!viewer.isSignedIn) return <a className="button" href={signInPath}>Editor sign in</a>;
-  if (viewer.canClaimOwnership) return <button className="button button-primary" disabled={busy} type="button" onClick={onClaim}>{busy ? 'Securing…' : 'Claim owner access'}</button>;
-  return <div className="account"><span className="avatar" aria-hidden="true">{(viewer.displayName ?? 'U').slice(0, 1).toUpperCase()}</span><span><strong>{viewer.displayName}</strong><small>{viewer.isEditor ? 'Editor' : 'Viewer'}</small></span><a href={signOutPath}>Sign out</a></div>;
+function AccountMenu({ viewer, onSignIn, onSignOut }: { viewer: ViewerState; onSignIn: () => void; onSignOut: () => void }) {
+  if (!viewer.isSignedIn) return <div className="sign-in-area"><button className="button" type="button" onClick={onSignIn}>Editor email sign in</button><small>Signing in is subject to our <a href="#/privacy">Privacy Policy</a> and <a href="#/terms">Terms</a>.</small></div>;
+  return <div className="account"><span className="avatar" aria-hidden="true">{(viewer.displayName ?? 'U').slice(0, 1).toUpperCase()}</span><span><strong>{viewer.displayName}</strong><small>{viewer.isOwner ? 'Owner' : viewer.isEditor ? 'Editor' : 'Viewer'}</small></span><button className="account-signout" type="button" onClick={onSignOut}>Sign out</button></div>;
 }
 
 function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete: (snapshot: GallerySnapshot) => void }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [caption, setCaption] = useState('');
   const [tags, setTags] = useState('');
+  const [rightsConfirmed, setRightsConfirmed] = useState(false);
   const [error, setError] = useState('');
   const uploading = items.some((item) => item.status === 'uploading');
 
@@ -307,12 +307,13 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!items.length) { setError('Choose at least one image.'); return; }
+    if (!rightsConfirmed) { setError('Confirm that you have the rights and permissions required for these photos.'); return; }
     let latest: GallerySnapshot | null = null;
     for (let index = 0; index < items.length; index += 1) {
       const item = items[index];
       setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'uploading', progress: 0 } : entry));
       try {
-        latest = await uploadFile(item.file, caption, tags, (progress) => {
+        latest = await uploadPhoto(item.file, caption, tags, rightsConfirmed, (progress) => {
           setItems((current) => current.map((entry, i) => i === index ? { ...entry, progress } : entry));
         });
         setItems((current) => current.map((entry, i) => i === index ? { ...entry, status: 'done', progress: 100 } : entry));
@@ -333,8 +334,9 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
       {items.length > 0 && <div className="upload-list">{items.map((item, index) => <div key={`${item.file.name}-${item.file.lastModified}`}><span className="upload-name">{item.file.name}<small>{formatBytes(item.file.size)}</small></span><span className={`upload-status ${item.status}`}>{item.status === 'uploading' ? `${item.progress}%` : item.status}</span><button type="button" aria-label={`Remove ${item.file.name}`} disabled={uploading} onClick={() => setItems((current) => current.filter((_, i) => i !== index))}>×</button><span className="progress" style={{ '--progress': `${item.progress}%` } as CSSProperties} />{item.error && <small className="field-error">{item.error}</small>}</div>)}</div>}
       <label className="field"><span>Description for this batch <small>optional</small></span><textarea value={caption} maxLength={600} onChange={(event) => setCaption(event.target.value)} placeholder="What changed, worked, or surprised you?" /></label>
       <label className="field"><span>Tags <small>comma separated</small></span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="prototype, testing, pcb" /></label>
+      <label className="consent-check"><input type="checkbox" checked={rightsConfirmed} onChange={(event) => setRightsConfirmed(event.target.checked)} /><span>I own these images or have permission to use them, have obtained any consent required for identifiable people, and agree to the <a href="#/terms">Terms of Use</a> and <a href="#/privacy">Privacy Policy</a>.</span></label>
       {error && <p className="field-error" role="alert">{error}</p>}
-      <div className="modal-actions"><button className="button" type="button" disabled={uploading} onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={uploading || !items.length}>{uploading ? 'Uploading…' : `Upload ${items.length || ''} ${items.length === 1 ? 'photo' : 'photos'}`}</button></div>
+      <div className="modal-actions"><button className="button" type="button" disabled={uploading} onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={uploading || !items.length || !rightsConfirmed}>{uploading ? 'Uploading…' : `Upload ${items.length || ''} ${items.length === 1 ? 'photo' : 'photos'}`}</button></div>
     </form>
   </Modal>;
 }
@@ -346,7 +348,7 @@ function SettingsModal({ snapshot, onClose, onComplete }: { snapshot: GallerySna
   const [error, setError] = useState('');
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
-    try { onComplete(await mutate('/api/settings', { method: 'PATCH', body: JSON.stringify({ title, subtitle, expectedRevision: snapshot.revision }) })); }
+    try { onComplete(await updateSettings(title, subtitle, snapshot.revision)); }
     catch (submitError) { setError(errorMessage(submitError)); setBusy(false); }
   }
   return <Modal title="Gallery settings" onClose={onClose}><form onSubmit={submit}><label className="field"><span>Gallery title</span><input value={title} required maxLength={80} onChange={(event) => setTitle(event.target.value)} /></label><label className="field"><span>Intro</span><textarea value={subtitle} maxLength={220} onChange={(event) => setSubtitle(event.target.value)} /></label>{error && <p className="field-error" role="alert">{error}</p>}<div className="modal-actions"><button className="button" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" disabled={busy} type="submit">{busy ? 'Saving…' : 'Save changes'}</button></div></form></Modal>;
@@ -359,10 +361,77 @@ function EditPhotoModal({ photo, onClose, onComplete }: { photo: GalleryPhoto; o
   const [error, setError] = useState('');
   async function submit(event: FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
-    try { onComplete(await mutate(`/api/photos/${encodeURIComponent(photo.id)}`, { method: 'PATCH', body: JSON.stringify({ caption, tags, expectedVersion: photo.version }) })); }
+    try { onComplete(await updatePhoto(photo.id, caption, tags, photo.version)); }
     catch (submitError) { setError(errorMessage(submitError)); setBusy(false); }
   }
   return <Modal title="Edit photo details" onClose={onClose}><form onSubmit={submit}><label className="field"><span>Description</span><textarea value={caption} maxLength={600} onChange={(event) => setCaption(event.target.value)} autoFocus /></label><label className="field"><span>Tags <small>comma separated</small></span><input value={tags} onChange={(event) => setTags(event.target.value)} /></label>{error && <p className="field-error" role="alert">{error}</p>}<div className="modal-actions"><button className="button" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" disabled={busy} type="submit">{busy ? 'Saving…' : 'Save details'}</button></div></form></Modal>;
+}
+
+function CollaboratorsModal({ onClose }: { onClose: () => void }) {
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [invites, setInvites] = useState<CollaboratorInvite[]>([]);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(true);
+  const [error, setError] = useState('');
+
+  async function load() {
+    setBusy(true);
+    setError('');
+    try {
+      const data = await listCollaborators();
+      setCollaborators(data.collaborators);
+      setInvites(data.invites);
+    } catch (loadError) {
+      setError(errorMessage(loadError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  async function invite(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      await inviteCollaborator(email);
+      setEmail('');
+      await load();
+    } catch (inviteError) {
+      setError(errorMessage(inviteError));
+      setBusy(false);
+    }
+  }
+
+  async function removeEditor(collaborator: Collaborator) {
+    if (!window.confirm(`Remove editor access for ${collaborator.email}?`)) return;
+    setBusy(true);
+    try { await removeCollaborator(collaborator.userId); await load(); }
+    catch (removeError) { setError(errorMessage(removeError)); setBusy(false); }
+  }
+
+  async function removeInvite(invite: CollaboratorInvite) {
+    setBusy(true);
+    try { await revokeInvite(invite.email); await load(); }
+    catch (removeError) { setError(errorMessage(removeError)); setBusy(false); }
+  }
+
+  return <Modal title="Collaborators" onClose={onClose} wide>
+    <p className="modal-intro">Invite collaborators by email. They open this site, request a secure email sign-in link, and receive editor access automatically after signing in with the invited address.</p>
+    <form className="invite-form" onSubmit={invite}>
+      <label className="field"><span>Collaborator email</span><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="teammate@example.com" required /></label>
+      <button className="button button-primary" type="submit" disabled={busy || !email.trim()}>Create invitation</button>
+    </form>
+    {error && <p className="field-error" role="alert">{error}</p>}
+    <section className="collaborator-section" aria-labelledby="current-collaborators"><h3 id="current-collaborators">People with access</h3>{collaborators.length ? <div className="collaborator-list">{collaborators.map((person) => <div key={person.userId}><span className="avatar" aria-hidden="true">{person.displayName.slice(0, 1).toUpperCase()}</span><span><strong>{person.displayName}</strong><small>{person.email} · {person.role}</small></span>{person.role !== 'owner' && <button type="button" disabled={busy} onClick={() => void removeEditor(person)}>Remove</button>}</div>)}</div> : <p className="modal-intro">{busy ? 'Loading collaborators…' : 'No collaborators found.'}</p>}</section>
+    <section className="collaborator-section" aria-labelledby="pending-invites"><h3 id="pending-invites">Pending invitations</h3>{invites.length ? <div className="collaborator-list">{invites.map((invite) => <div key={invite.email}><span className="invite-mark" aria-hidden="true">@</span><span><strong>{invite.email}</strong><small>Expires {new Date(invite.expiresAt).toLocaleDateString()}</small></span><button type="button" disabled={busy} onClick={() => void removeInvite(invite)}>Revoke</button></div>)}</div> : <p className="modal-intro">No pending invitations.</p>}</section>
+    <p className="security-note">Invitations authorize access but do not send email by themselves. Share the public gallery link with the collaborator; Supabase sends the one-time sign-in link when they request it.</p>
+    <div className="modal-actions"><button className="button" type="button" onClick={onClose}>Done</button></div>
+  </Modal>;
 }
 
 function Modal({ title, children, onClose, wide = false }: { title: string; children: ReactNode; onClose: () => void; wide?: boolean }) {
@@ -395,29 +464,6 @@ function Lightbox({ photo, hasMultiple, onClose, onStep }: { photo: GalleryPhoto
     document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey);
   }, [onClose, onStep]);
   return <div className="lightbox" role="dialog" aria-modal="true" aria-label={photo.caption || photo.filename}><button className="lightbox-close" type="button" onClick={onClose} aria-label="Close photo">×</button>{hasMultiple && <button className="lightbox-prev" type="button" onClick={() => onStep(-1)} aria-label="Previous photo">‹</button>}<figure><img src={photo.imageUrl} alt={photo.caption || 'Project build photo'} /><figcaption><p>{photo.caption || 'No description yet.'}</p><span>{formatDate(photo.addedAt)}{photo.tags.length ? ` · ${photo.tags.map((item) => `#${item}`).join(' ')}` : ''}</span></figcaption></figure>{hasMultiple && <button className="lightbox-next" type="button" onClick={() => onStep(1)} aria-label="Next photo">›</button>}</div>;
-}
-
-function uploadFile(file: File, caption: string, tags: string, onProgress: (progress: number) => void): Promise<GallerySnapshot> {
-  return new Promise((resolve, reject) => {
-    const form = new FormData(); form.set('file', file); form.set('caption', caption); form.set('tags', tags);
-    const request = new XMLHttpRequest(); request.open('POST', '/api/photos'); request.responseType = 'json'; request.withCredentials = true;
-    request.upload.addEventListener('progress', (event) => { if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100)); });
-    request.addEventListener('load', () => request.status >= 200 && request.status < 300 ? resolve(request.response as GallerySnapshot) : reject(new Error(request.response?.error ?? 'Upload failed.')));
-    request.addEventListener('error', () => reject(new Error('The upload connection failed.'))); request.send(form);
-  });
-}
-
-async function mutate<T>(url: string, init: RequestInit): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (typeof init.body === 'string') headers.set('Content-Type', 'application/json');
-  const response = await fetch(url, { ...init, headers, credentials: 'same-origin' });
-  return readJson<T>(response);
-}
-
-async function readJson<T>(response: Response): Promise<T> {
-  const data = await response.json().catch(() => null) as T & { error?: string } | null;
-  if (!response.ok) throw new Error(data?.error ?? 'The request could not be completed.');
-  return data as T;
 }
 
 function errorMessage(error: unknown) { return error instanceof Error ? error.message : 'Something went wrong.'; }

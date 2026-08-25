@@ -20,6 +20,7 @@ export type GallerySnapshot = {
 export type ViewerState = {
   isSignedIn: boolean;
   isEditor: boolean;
+  isOwner: boolean;
   canClaimOwnership: boolean;
   displayName: string | null;
   email: string | null;

@@ -8,6 +8,13 @@
       "when": 1787640580518,
       "tag": "0000_eminent_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787641629498,
+      "tag": "0001_ordinary_stark_industries",
+      "breakpoints": true
     }
   ]
 }

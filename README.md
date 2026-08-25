@@ -1,15 +1,29 @@
 # Project Gallery
 
-A secure collaborative photo log for ECE5 build work. The app uses Sites authentication for identity, D1 for transactional metadata, and R2 for validated image uploads.
+A public, collaborative photo log that runs as a static site on GitHub Pages. Supabase provides passwordless email authentication, Postgres metadata, and image storage. Database row-level security and storage policies—not browser code—decide who may edit.
 
 ## Local development
+
+1. Complete [SUPABASE_SETUP.md](./SUPABASE_SETUP.md).
+2. Copy `.env.example` to `.env.local` and add the project URL and publishable key.
+3. Run:
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-The local gallery is read-only unless authentication headers are supplied by the Sites environment. The first authenticated visitor to an unclaimed gallery can become its owner; all later write operations are authorized server-side.
+## Deploy to GitHub Pages
+
+Push to the repository’s `main` branch, add the two repository variables described in the setup guide, and select **GitHub Actions** as the Pages source. The included workflow tests and publishes the static build.
+
+## Security model
+
+- Anyone may view active gallery content.
+- Sign-in uses an expiring link sent to the user’s email; no ChatGPT account or shared passkey is involved.
+- Signing in does not grant editing. Only the owner or an invited email address becomes an editor.
+- Supabase RLS and RPC checks protect every database mutation; Storage policies protect uploads.
+- The Supabase publishable key is safe to expose when these policies are applied. Never place a service-role key in this repository or in a `VITE_` variable.
 
 ## Checks
 

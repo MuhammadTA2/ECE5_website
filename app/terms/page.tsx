@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { LegalShell } from '@/app/legal-shell';
-import { getPrivacyContact } from '@/lib/legal';
+import { getPrivacyOwner } from '@/lib/legal';
 import { LEGAL_EFFECTIVE_DATE } from '@/lib/legal-shared';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TermsPage() {
-  const contact = await getPrivacyContact();
+  const owner = await getPrivacyOwner();
   return (
     <LegalShell eyebrow="LEGAL · USE" title="Terms of Use" updated={LEGAL_EFFECTIVE_DATE}>
       <p className="legal-lead">These Terms govern access to and use of this Project Gallery. “Site Owner” means the person or organization that owns and administers this gallery. By signing in, viewing restricted content, or uploading content, you agree to these Terms and the Privacy Policy.</p>
@@ -31,7 +31,7 @@ export default async function TermsPage() {
 
       <section><h2>8. Accessibility</h2><p>The gallery is intended to support keyboard navigation, readable contrast, descriptive text, and assistive technologies. Report an accessibility barrier to the Site Owner so it can be reviewed and addressed.</p></section>
 
-      <section><h2>9. Changes and contact</h2><p>The Site Owner may update these Terms when the service or applicable requirements change. Continued use after notice of a material update constitutes acceptance where permitted by law.</p>{contact ? <p>Questions, removal notices, or accessibility concerns may be sent to <a href={`mailto:${contact}`}>{contact}</a>.</p> : <p>Contact the person or organization that invited you. The Site Owner must provide a working contact before inviting other people or collecting their content.</p>}</section>
+      <section><h2>9. Changes and contact</h2><p>The Site Owner may update these Terms when the service or applicable requirements change. Continued use after notice of a material update constitutes acceptance where permitted by law.</p>{owner ? <p>Questions, removal notices, or accessibility concerns may be sent to {owner.name ? `${owner.name} at ` : ''}<a href={`mailto:${owner.email}`}>{owner.email}</a>.</p> : <p>Contact the person or organization that invited you. The Site Owner must provide a working contact before inviting other people or collecting their content.</p>}</section>
     </LegalShell>
   );
 }

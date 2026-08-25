@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { LegalShell } from '@/app/legal-shell';
-import { getPrivacyContact } from '@/lib/legal';
+import { getPrivacyOwner } from '@/lib/legal';
 import { LEGAL_EFFECTIVE_DATE } from '@/lib/legal-shared';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PrivacyPage() {
-  const contact = await getPrivacyContact();
+  const owner = await getPrivacyOwner();
   return (
     <LegalShell eyebrow="LEGAL · PRIVACY" title="Privacy Policy" updated={LEGAL_EFFECTIVE_DATE}>
       <p className="legal-lead">Project Gallery is a private or access-controlled collaborative photo log. The person or organization that owns and administers this gallery (the “Site Owner”) controls the content and decides who may view or edit it.</p>
@@ -41,7 +41,7 @@ export default async function PrivacyPage() {
 
       <section><h2>11. Changes</h2><p>This policy may be updated when the gallery’s practices or legal obligations change. The effective date above identifies the current version. Material changes should be communicated to active users where required.</p></section>
 
-      <section><h2>12. Contact and requests</h2>{contact ? <p>The Site Owner’s privacy contact is <a href={`mailto:${contact}`}>{contact}</a>. Use that address for privacy, deletion, accessibility, or content-removal requests.</p> : <p>No owner contact is available yet because this gallery has not been claimed. Until an owner claims it, contact the person or organization that provided your gallery invitation. The Site Owner must provide a working privacy contact before inviting other people or collecting their content.</p>}</section>
+      <section><h2>12. Contact and requests</h2>{owner ? <p>The Site Owner is {owner.name ?? 'the account holder identified by'} ({<a href={`mailto:${owner.email}`}>{owner.email}</a>}). Use that address for privacy, deletion, accessibility, or content-removal requests.</p> : <p>No owner contact is available yet because this gallery has not been claimed. Until an owner claims it, contact the person or organization that provided your gallery invitation. The Site Owner must provide a working privacy contact before inviting other people or collecting their content.</p>}</section>
     </LegalShell>
   );
 }

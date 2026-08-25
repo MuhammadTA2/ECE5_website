@@ -6,14 +6,17 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev --host 127.0.0.1 --port 8000",
-    "build": "vinext build",
-    "start": "vinext start",
+    "dev": "vite --config vite.github.config.ts --host 127.0.0.1 --port 8000",
+    "build": "vite build --config vite.github.config.ts",
+    "preview": "vite preview --config vite.github.config.ts --host 127.0.0.1 --port 8000",
+    "sites:dev": "vinext dev --host 127.0.0.1 --port 8001",
+    "sites:build": "vinext build",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern drizzle",
     "test": "vitest run --config vitest.config.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
