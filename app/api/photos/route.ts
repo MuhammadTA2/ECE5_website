@@ -2,6 +2,7 @@ import { getD1, getFiles } from '@/db';
 import { getGallerySnapshot } from '@/lib/gallery';
 import { HttpError, jsonError, requireEditor } from '@/lib/security';
 import { cleanTags, cleanText, isSupportedImage, MAX_UPLOAD_BYTES, safeFilename } from '@/lib/validation';
+import { LEGAL_POLICY_VERSION } from '@/lib/legal-shared';
 
 export async function POST(request: Request) {
   let objectKey: string | null = null;
@@ -11,6 +12,9 @@ export async function POST(request: Request) {
     if (declaredSize > MAX_UPLOAD_BYTES + 256_000) throw new HttpError(413, 'That upload is too large.');
 
     const form = await request.formData();
+    if (form.get('rightsConfirmed') !== 'true' || form.get('policyVersion') !== LEGAL_POLICY_VERSION) {
+      throw new HttpError(400, 'Confirm that you have permission to upload these images and accept the current terms.');
+    }
     const file = form.get('file');
     if (!(file instanceof File)) throw new HttpError(400, 'Choose an image to upload.');
     if (file.size < 1 || file.size > MAX_UPLOAD_BYTES) throw new HttpError(413, 'Images must be 8 MB or smaller.');
@@ -37,6 +41,8 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT MAX(position) + 1 FROM photos WHERE deleted_at IS NULL), 0), 1)`)
         .bind(id, objectKey, filename, file.type, file.size, caption, now, user.userId),
       ...tags.map((tag) => db.prepare('INSERT INTO photo_tags (photo_id, tag) VALUES (?, ?)').bind(id, tag)),
+      db.prepare(`INSERT INTO upload_consents (photo_id, user_id, policy_version, confirmed_at)
+        VALUES (?, ?, ?, ?)`).bind(id, user.userId, LEGAL_POLICY_VERSION, now),
       db.prepare('UPDATE gallery_meta SET revision = revision + 1 WHERE id = 1'),
     ];
     await db.batch(statements);

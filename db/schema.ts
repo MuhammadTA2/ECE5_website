@@ -83,6 +83,15 @@ export const photoTags = sqliteTable(
   ],
 );
 
+export const uploadConsents = sqliteTable('upload_consents', {
+  photoId: text('photo_id')
+    .primaryKey()
+    .references(() => photos.id, { onDelete: 'cascade' }),
+  userId: text('user_id').notNull(),
+  policyVersion: text('policy_version').notNull(),
+  confirmedAt: integer('confirmed_at').notNull(),
+});
+
 export const rateLimits = sqliteTable('rate_limits', {
   key: text('key').primaryKey(),
   windowStart: integer('window_start').notNull(),

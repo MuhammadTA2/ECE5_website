@@ -65,6 +65,12 @@ async function initializeSchema(): Promise<void> {
       tag TEXT NOT NULL,
       PRIMARY KEY (photo_id, tag)
     )`,
+    `CREATE TABLE IF NOT EXISTS upload_consents (
+      photo_id TEXT PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      policy_version TEXT NOT NULL,
+      confirmed_at INTEGER NOT NULL
+    )`,
     `CREATE TABLE IF NOT EXISTS rate_limits (
       key TEXT PRIMARY KEY,
       window_start INTEGER NOT NULL,
