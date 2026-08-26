@@ -8,9 +8,20 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 describe('static portfolio', () => {
   it('publishes factual project links and portfolio identity', () => {
     const app = read('src/app.tsx');
+    const projects = read('src/projects.ts');
     expect(app).toContain('Muhammad Abouelkhir');
-    expect(app).toContain('Occupancy-Grid-Compression');
-    expect(app).toContain('ece5RobotCode');
+    expect(projects).toContain('Occupancy-Grid-Compression');
+    expect(projects).toContain('ece5RobotCode');
+  });
+
+  it('builds project tabs and dedicated detail pages from reusable records', () => {
+    const app = read('src/app.tsx');
+    const projects = read('src/projects.ts');
+    expect(app).toContain('project-tabs');
+    expect(app).toContain("path.startsWith('projects/')");
+    expect(app).toContain('project.gallery.map');
+    expect(projects).toContain('previewImage?: string');
+    expect(projects).toContain('gallery: ProjectImage[]');
   });
 
   it('has no authentication, database, or external runtime dependency', () => {
