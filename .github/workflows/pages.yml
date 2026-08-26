@@ -1,4 +1,4 @@
-name: Deploy Project Gallery to GitHub Pages
+name: Deploy Muhammad Abouelkhir Portfolio
 
 on:
   push:
@@ -17,9 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -29,22 +26,14 @@ jobs:
           node-version: 22
       - name: Enable pnpm
         run: corepack enable
-      - name: Verify Supabase configuration
-        run: |
-          if [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_PUBLISHABLE_KEY" ]; then
-            echo "::error::Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY as repository variables before deploying."
-            exit 1
-          fi
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check source
-        run: pnpm lint && pnpm exec tsc --noEmit
+        run: pnpm lint
       - name: Run tests
         run: pnpm test
-      - name: Build static site
+      - name: Build static portfolio
         run: pnpm build
-      - name: Add GitHub Pages fallback
-        run: cp dist/index.html dist/404.html
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact

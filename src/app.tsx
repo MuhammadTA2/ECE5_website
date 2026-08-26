@@ -1,127 +1,87 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { GalleryClient } from '@/app/gallery-client';
-import type { GallerySnapshot, ViewerState } from '@/lib/types';
-import { getGallerySnapshot, getViewerState, sendEmailSignInLink, signedOutViewer, signOut } from './gallery-service';
-import { configurationError, supabase } from './supabase';
-import { PrivacyPage, TermsPage } from './legal-pages';
-
-const emptySnapshot: GallerySnapshot = {
-  settings: {
-    title: 'Project Gallery',
-    subtitle: 'A secure, shared log of builds, breakthroughs, and the work between.',
-  },
-  photos: [],
-  revision: 0,
-};
+const githubProfile = 'https://github.com/MuhammadTA2';
 
 export function App() {
-  const [route, setRoute] = useState(window.location.hash.replace(/^#\/?/, '') || 'gallery');
-  const [snapshot, setSnapshot] = useState<GallerySnapshot>(emptySnapshot);
-  const [viewer, setViewer] = useState<ViewerState>(signedOutViewer);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(configurationError ?? '');
-  const [authOpen, setAuthOpen] = useState(false);
+  return <main>
+    <header className="site-header">
+      <a className="wordmark" href="#top" aria-label="Muhammad Abouelkhir, home">
+        <span>MA</span><strong>Muhammad Abouelkhir</strong>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#work">Work</a>
+        <a href="#about">About</a>
+        <a className="nav-cta" href={githubProfile} target="_blank" rel="noreferrer">GitHub ↗</a>
+      </nav>
+    </header>
 
-  const load = useCallback(async () => {
-    if (configurationError) { setLoading(false); return; }
-    try {
-      const [nextSnapshot, nextViewer] = await Promise.all([
-        getGallerySnapshot(),
-        getViewerState(true),
-      ]);
-      setSnapshot(nextSnapshot);
-      setViewer(nextViewer);
-      setError('');
-      document.title = `${nextSnapshot.settings.title} · Project Gallery`;
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'The gallery could not be loaded.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    <section className="hero" id="top">
+      <div className="hero-copy">
+        <p className="kicker"><span /> Electrical &amp; computer engineering</p>
+        <h1>Engineering systems that <em>move, map,</em> and communicate.</h1>
+        <p className="hero-intro">I build across the boundary between hardware and software—from closed-loop robot control to bandwidth-aware telemetry.</p>
+        <div className="hero-actions">
+          <a className="button button-primary" href="#work">Explore selected work <span>↓</span></a>
+          <a className="text-link" href={githubProfile} target="_blank" rel="noreferrer">github.com/MuhammadTA2 ↗</a>
+        </div>
+      </div>
+      <div className="signal-panel" aria-label="Engineering focus areas">
+        <div className="panel-head"><span>LIVE SYSTEM MAP</span><span className="live-dot">ACTIVE</span></div>
+        <div className="signal-map" aria-hidden="true">
+          <span className="trace trace-a" /><span className="trace trace-b" /><span className="trace trace-c" />
+          <div className="node node-sense"><small>01</small><strong>SENSE</strong><span>photoresistors<br />occupancy grids</span></div>
+          <div className="node node-compute"><small>02</small><strong>COMPUTE</strong><span>PID control<br />compression</span></div>
+          <div className="node node-link"><small>03</small><strong>LINK</strong><span>packets + CRC<br />LoRa roadmap</span></div>
+        </div>
+        <div className="panel-foot"><span>C++ / ESP32</span><span>TYPE-SAFE SYSTEMS</span><span>TESTED PIPELINES</span></div>
+      </div>
+    </section>
 
-  useEffect(() => {
-    const onHashChange = () => setRoute(window.location.hash.replace(/^#\/?/, '') || 'gallery');
-    window.addEventListener('hashchange', onHashChange);
-    const initialLoad = window.setTimeout(() => void load(), 0);
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      window.setTimeout(() => void load(), 0);
-    });
-    return () => {
-      window.removeEventListener('hashchange', onHashChange);
-      window.clearTimeout(initialLoad);
-      listener.subscription.unsubscribe();
-    };
-  }, [load]);
+    <section className="project-preview" id="work" aria-labelledby="work-title">
+      <div className="section-label"><span>01 / Selected work</span><p>Projects built to learn the whole system, not just one layer.</p></div>
+      <h2 id="work-title">From raw signal<br />to reliable result.</h2>
+      <div className="preview-grid">
+        <a className="preview-card featured" href="https://github.com/MuhammadTA2/Occupancy-Grid-Compression" target="_blank" rel="noreferrer">
+          <span className="project-number">P.01 / FEATURED</span><div><p>C++17 · TELEMETRY · ROBOTICS</p><h3>Occupancy Grid Compression</h3><p className="project-description">A modular pipeline for moving robot map data across constrained links. The system tiles 100×100 occupancy grids, applies RLE and interchangeable count coders, fragments streams into CRC-protected packets, and reconstructs the map at the receiver.</p><ul className="project-tags"><li>CMake</li><li>RLE</li><li>Rice coding</li><li>CRC-16</li><li>LoRa roadmap</li></ul><span>Explore source and wire spec ↗</span></div>
+        </a>
+        <a className="preview-card" href="https://github.com/MuhammadTA2/ece5RobotCode" target="_blank" rel="noreferrer">
+          <span className="project-number">P.02</span><div><p>ESP32 · CONTROL · SENSING</p><h3>PID Line-Following Robot</h3><p className="project-description">Embedded control software for a two-motor robot using a seven-photoresistor array. The firmware calibrates against the course, computes weighted line error, and turns that signal into real-time PID motor commands.</p><ul className="project-tags"><li>Arduino C++</li><li>PID</li><li>PWM</li><li>Calibration</li></ul><span>Inspect firmware ↗</span></div>
+        </a>
+      </div>
+    </section>
 
-  if (route === 'privacy') return <PrivacyPage />;
-  if (route === 'terms') return <TermsPage />;
+    <section className="capabilities" aria-labelledby="capabilities-title">
+      <div className="section-label"><span>02 / Capabilities</span><p>Comfortable moving from a physical signal to a software model, then proving the path back to reality.</p></div>
+      <div className="capability-layout">
+        <h2 id="capabilities-title">Build the loop.<br /><em>Measure the result.</em></h2>
+        <div className="capability-list">
+          <article><span>01</span><div><h3>Embedded control</h3><p>ESP32 and Arduino development, sensor calibration, PWM motor drive, PID tuning, and serial diagnostics.</p></div></article>
+          <article><span>02</span><div><h3>Data &amp; telemetry</h3><p>Compact representations, RLE and entropy coding, packet formats, integrity checks, reassembly, and link-aware design.</p></div></article>
+          <article><span>03</span><div><h3>Software architecture</h3><p>Modern C++, CMake, modular interfaces, explicit wire contracts, unit tests, and maintainable boundaries between subsystems.</p></div></article>
+          <article><span>04</span><div><h3>Web systems</h3><p>TypeScript, React, GitHub Actions, static deployment, accessible interfaces, and security-conscious delivery.</p></div></article>
+        </div>
+      </div>
+      <div className="tool-rail" aria-label="Tools and technologies"><span>C++17</span><span>ESP32</span><span>CMake</span><span>Arduino</span><span>Git</span><span>TypeScript</span><span>React</span><span>GitHub Actions</span></div>
+    </section>
 
-  if (loading) return <main className="app-state"><div className="state-card"><span className="state-spinner" aria-hidden="true" /><h1>Opening the gallery</h1><p>Loading the public archive and checking your editor session.</p></div></main>;
+    <section className="about" id="about" aria-labelledby="about-title">
+      <div className="about-index">03 / ABOUT</div>
+      <div className="about-copy">
+        <p className="kicker"><span /> Systems-minded engineering</p>
+        <h2 id="about-title">I like projects where software has to answer to the physical world.</h2>
+        <p>My work sits where sensing, computation, and communication meet. I’m interested in robotics and autonomous systems—especially the details that turn a promising demo into a dependable system: calibration, bandwidth, error handling, testability, and clear interfaces.</p>
+        <p>Right now I’m extending an occupancy-grid telemetry stack toward adaptive compression, LoRa transport, retransmission, and hardware-in-the-loop testing.</p>
+      </div>
+      <aside className="principles" aria-label="Engineering principles">
+        <p>WORKING PRINCIPLES</p>
+        <ol><li><span>01</span>Make the data path explicit.</li><li><span>02</span>Measure before optimizing.</li><li><span>03</span>Design failures into the test plan.</li><li><span>04</span>Keep hardware replaceable.</li></ol>
+      </aside>
+    </section>
 
-  if (error) {
-    const isSetupError = Boolean(configurationError);
-    return <main className="app-state"><div className="state-card">
-      <p className="eyebrow">{isSetupError ? 'SETUP REQUIRED' : 'CONNECTION PROBLEM'}</p>
-      <h1>{isSetupError ? 'Connect the gallery backend.' : 'The gallery is temporarily unavailable.'}</h1>
-      <p>{error}</p>
-      {isSetupError && <p>Apply the Supabase migration and add the two repository variables described in <code>SUPABASE_SETUP.md</code>.</p>}
-      {!isSetupError && <p>Your content is safe. Check the connection and try again.</p>}
-      <button className="button" type="button" onClick={() => void load()}>Try again</button>
-    </div></main>;
-  }
+    <section className="contact" aria-labelledby="contact-title">
+      <p>04 / LET’S BUILD</p>
+      <h2 id="contact-title">Have a hard systems problem?</h2>
+      <div><p>Explore the code, follow the work, or reach out through GitHub.</p><a className="button contact-button" href={githubProfile} target="_blank" rel="noreferrer">Open GitHub profile <span>↗</span></a></div>
+    </section>
 
-  return <>
-    <GalleryClient
-      initialSnapshot={snapshot}
-      viewer={viewer}
-      onSignIn={() => setAuthOpen(true)}
-      onSignOut={() => void signOut()}
-    />
-    {authOpen && <EmailSignInModal onClose={() => setAuthOpen(false)} />}
-  </>;
-}
-
-function EmailSignInModal({ onClose }: { onClose: () => void }) {
-  const [email, setEmail] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError('');
-    setMessage('');
-    try {
-      await sendEmailSignInLink(email);
-      setMessage('Check your email for a secure one-time sign-in link. It may take a minute to arrive.');
-    } catch (signInError) {
-      setError(signInError instanceof Error ? signInError.message : 'The sign-in email could not be sent.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    document.body.classList.add('modal-open');
-    return () => { document.removeEventListener('keydown', onKey); document.body.classList.remove('modal-open'); previous?.focus(); };
-  }, [onClose]);
-
-  return <div className="modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="email-sign-in-title">
-      <div className="modal-head"><h2 id="email-sign-in-title">Editor email sign in</h2><button type="button" onClick={onClose} aria-label="Close dialog">×</button></div>
-      <p className="modal-intro">Enter your email. We’ll send a one-time sign-in link—no ChatGPT account or shared password is required. Editing remains limited to addresses invited by the gallery owner.</p>
-      <form onSubmit={submit}>
-        <label className="field"><span>Email address</span><input type="email" autoFocus autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
-        {message && <p className="success-message" role="status">{message}</p>}
-        {error && <p className="field-error" role="alert">{error}</p>}
-        <div className="modal-actions"><button className="button" type="button" onClick={onClose}>Cancel</button><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Email me a sign-in link'}</button></div>
-      </form>
-      <p className="security-note">The link expires and can only sign in the email address that requested it. Read the <a href="#/privacy" onClick={onClose}>Privacy Policy</a> and <a href="#/terms" onClick={onClose}>Terms</a>.</p>
-    </div>
-  </div>;
+    <footer><span>© {new Date().getFullYear()} Muhammad Abouelkhir</span><span>Built in TypeScript · Hosted on GitHub Pages</span><a href="#top">Back to top ↑</a></footer>
+  </main>;
 }
