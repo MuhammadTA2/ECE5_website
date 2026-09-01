@@ -218,26 +218,26 @@ export const projects: Project[] = [
 gallery: [
   {
     type: 'image',
-    src: 'projects/pid-line-following-robot/chassis-model.jpg',
+    src: 'projects/pid-line-following-robot/chassis-model.heic',
     alt: 'Onshape CAD model of the proposed line-following robot chassis and front sensor array',
     caption: 'CAD concept for the custom chassis and front-mounted sensor array.',
   },
   {
     type: 'image',
-    src: 'projects/pid-line-following-robot/breadboarded-prototype.jpg',
+    src: 'projects/pid-line-following-robot/breadboarded-prototype.heic',
     alt: 'Breadboarded PID line-following robot prototype on a lab bench with an ESP32, photoresistors, wheels, and wire harness',
     caption: 'Early breadboarded prototype used to bring up the ESP32, sensor array, and motor drive.',
   },
   {
     type: 'image',
-    src: 'projects/pid-line-following-robot/tin-light-shield.jpg',
+    src: 'projects/pid-line-following-robot/tin-lightshield.jpg',
     alt: 'Line-following robot prototype following a black tape track with a foil light shield around the front sensor array',
     caption: 'Temporary foil light shield added around the front sensor array to reduce ambient-light interference.',
   },
   {
     type: 'video',
     src: 'projects/pid-line-following-robot/first-pid-test.mp4',
-    poster: 'projects/pid-line-following-robot/tin-light-shield.jpg',
+    poster: 'projects/pid-line-following-robot/tin-lightshield.jpg',
     title: 'First PID line-following test',
     caption: 'First closed-loop test of the PID line-following controller on the taped course.',
     portrait: true,
