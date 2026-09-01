@@ -163,7 +163,7 @@ export const projects: Project[] = [
         src: 'projects/occupancy-grid-compression/hardware-demo-02.mp4',
         poster: 'projects/occupancy-grid-compression/hardware-demo-02-poster.jpg',
         title: 'Omnidirectional robot laboratory test',
-        caption: 'The mobile robot operating during a laboratory test.',
+        caption: 'First test of communcations, controls, and motors being integrated.',
         portrait: true,
       },
       
@@ -178,7 +178,7 @@ export const projects: Project[] = [
         src: 'projects/occupancy-grid-compression/compression-software-demo.mp4',
         poster: 'projects/occupancy-grid-compression/compression-software-demo-poster.jpg',
         title: 'Occupancy-grid mapping presentation',
-        caption: 'Mapping concepts and the compression workflow explained onscreen.',
+        caption: 'Mapping concepts and the compression workflow explained onscreen explained by Tri Cao.',
         wide: true,
       },
       {
@@ -186,7 +186,7 @@ export const projects: Project[] = [
         src: 'projects/occupancy-grid-compression/compression-walkthrough.mp4',
         poster: 'projects/occupancy-grid-compression/compression-walkthrough-poster.jpg',
         title: 'Compression implementation walkthrough',
-        caption: 'Source-level walkthrough of the compression and transport implementation.',
+        caption: 'Source-level walkthrough of the compression and transport implementation explained by Muhammad Abouelkhir.',
         wide: true,
       },
       {
@@ -194,7 +194,7 @@ export const projects: Project[] = [
         src: 'projects/occupancy-grid-compression/hardware-demo-01.mp4',
         poster: 'projects/occupancy-grid-compression/hardware-demo-01-poster.jpg',
         title: 'Additional project footage',
-        caption: 'Additional footage recorded during the project build.',
+        caption: 'First working test of wireless communications',
         wide: true,
       },
     ],
