@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { projects, type Project } from './projects';
 
 const githubProfile = 'https://github.com/MuhammadTA2';
-const siteUrl = 'https://muhammadta2.github.io/ECE5_website/';
+const siteUrl = 'https://muhammadta2.github.io/portfolio-web/';
 
 type Route =
   | { kind: 'home'; section?: 'about' }
