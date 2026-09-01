@@ -260,6 +260,17 @@ function ProjectPage({ project }: { project: Project }) {
         </article>)}
       </section>
 
+      {project.codeHighlights && project.codeHighlights.length > 0 && <section className="code-showcase" aria-labelledby="code-title">
+        <div className="section-label"><span>05 / CODE IN CONTEXT</span><h2 id="code-title">The implementation,<br />not just the diagram.</h2></div>
+        {project.codeHighlights.map((highlight) => <article className="code-feature" key={highlight.title}>
+          <div className="code-context"><p>{highlight.eyebrow}</p><h3>{highlight.title}</h3><p>{highlight.description}</p><a href={highlight.sourceUrl} target="_blank" rel="noreferrer">View full source ↗</a></div>
+          <div className="code-window">
+            <div className="code-toolbar"><span>{highlight.file}</span><span>{highlight.language}</span></div>
+            <pre aria-label={`${highlight.title} code excerpt`}><code>{highlight.code.split('\n').map((line, lineIndex) => <span className="code-line" key={`${highlight.title}-${lineIndex}`}><i>{highlight.startLine + lineIndex}</i><span>{line || ' '}</span></span>)}</code></pre>
+          </div>
+        </article>)}
+      </section>}
+
       {project.gallery.length > 0 && <section className="project-gallery" aria-labelledby="gallery-title">
         <div className="section-label"><span>MEDIA / BUILD LOG</span><h2 id="gallery-title">Process &amp; details.</h2></div>
         <div className="gallery-grid">{project.gallery.map((media, mediaIndex) => <figure key={media.src} className={`${media.wide ? 'wide' : ''} ${media.type === 'video' ? 'video-item' : 'image-item'} ${media.type === 'video' && media.portrait ? 'portrait' : ''}`}>

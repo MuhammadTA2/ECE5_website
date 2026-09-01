@@ -42,6 +42,18 @@ describe('static portfolio', () => {
     }
   });
 
+  it('uses excerpts from the real compression implementation', () => {
+    const occupancyProject = projects.find((project) => project.slug === 'occupancy-grid-compression');
+    expect(occupancyProject?.codeHighlights).toHaveLength(3);
+    expect(occupancyProject?.codeHighlights?.map((highlight) => highlight.eyebrow)).toEqual([
+      'RLE / ENCODE',
+      'INTEGRITY / CRC-16-CCITT',
+      'TRANSPORT / PACKETIZATION',
+    ]);
+    expect(occupancyProject?.codeHighlights?.[1].code).toContain('0x1021');
+    expect(occupancyProject?.codeHighlights?.[2].code).toContain('MAX_PAYLOAD_SIZE');
+  });
+
   it('has no authentication, database, or external runtime dependency', () => {
     const packageJson = read('package.json');
     const app = read('src/app.tsx');

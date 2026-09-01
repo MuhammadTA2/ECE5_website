@@ -16,6 +16,17 @@ export type ProjectMedia =
       portrait?: boolean;
     };
 
+export type CodeHighlight = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  language: string;
+  file: string;
+  sourceUrl: string;
+  startLine: number;
+  code: string;
+};
+
 export type Project = {
   slug: string;
   name: string;
@@ -27,6 +38,7 @@ export type Project = {
     title: string;
     body: string;
   }>;
+  codeHighlights?: CodeHighlight[];
   tags: string[];
   repository?: string;
   featured?: boolean;
@@ -50,6 +62,87 @@ export const projects: Project[] = [
       { eyebrow: 'THE CONSTRAINT', title: 'Move more map with fewer bytes.', body: 'Occupancy grids are useful but expensive to transmit over a constrained radio link. The pipeline breaks the map into manageable tiles so each stage can operate locally and recover predictably.' },
       { eyebrow: 'THE PIPELINE', title: 'Compression stays interchangeable.', body: 'Run-length encoding captures repeated cell values, while pluggable count coders make it possible to compare representation strategies without rewriting packet or reconstruction logic.' },
       { eyebrow: 'THE LINK', title: 'Packets protect the boundary.', body: 'The encoded stream is fragmented into a defined wire format with CRC-16 integrity checks. The receiver validates, reassembles, decodes, and places every tile back into the reconstructed grid.' },
+    ],
+    codeHighlights: [
+      {
+        eyebrow: 'RLE / ENCODE',
+        title: 'Collapse repeated cells into runs.',
+        description: 'The encoder walks the symbol stream once, pairing each cell value with its repeat count. A run is deliberately capped before the 16-bit counter can wrap and corrupt the decoded map.',
+        language: 'C++',
+        file: 'src/rle.cpp',
+        sourceUrl: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression/blob/main/src/rle.cpp#L5-L23',
+        startLine: 5,
+        code: `RLERuns rleEncode(const std::vector<uint8_t>& data){
+    RLERuns runs;
+    if(data.empty()) return runs;
+
+    size_t i = 0;
+    while(i < data.size()){
+        uint8_t value = data[i];
+        uint16_t count = 0;
+        // Force a new run before count would wrap past 65535 -- silent
+        // wraparound would corrupt data.
+        while(i < data.size() && data[i] == value && count < 65535){
+            count++;
+            i++;
+        }
+        runs.values.push_back(value);
+        runs.counts.push_back(count);
+    }
+    return runs;
+}`,
+      },
+      {
+        eyebrow: 'INTEGRITY / CRC-16-CCITT',
+        title: 'Turn corruption into a hard rejection.',
+        description: 'Every serialized packet carries a CRC calculated over its header and payload. The receiver repeats the same calculation and rejects the packet instead of attempting to decode bytes that changed in transit.',
+        language: 'C++',
+        file: 'src/packetizer.cpp',
+        sourceUrl: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression/blob/main/src/packetizer.cpp#L6-L16',
+        startLine: 6,
+        code: `uint16_t crc16(const std::vector<uint8_t>& data){
+    uint16_t crc = 0xFFFF;
+    for(uint8_t byte : data){
+        crc ^= static_cast<uint16_t>(byte) << 8;
+        for(int i = 0; i < 8; i++){
+            if(crc & 0x8000u) crc = static_cast<uint16_t>((crc << 1) ^ 0x1021);
+            else crc = static_cast<uint16_t>(crc << 1);
+        }
+    }
+    return crc;
+}`,
+      },
+      {
+        eyebrow: 'TRANSPORT / PACKETIZATION',
+        title: 'Split one stream into ordered fragments.',
+        description: 'The packetizer calculates exactly how many payload-sized fragments are required, then stamps each one with a message, stream, position, total count, and actual payload length for deterministic reassembly.',
+        language: 'C++',
+        file: 'src/packetizer.cpp',
+        sourceUrl: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression/blob/main/src/packetizer.cpp#L18-L39',
+        startLine: 18,
+        code: `std::vector<Packet> fragment(uint16_t messageId, uint8_t streamId, const std::vector<uint8_t>& data){
+    std::vector<Packet> packets;
+
+    size_t totalFragments = data.empty() ? 1 : (data.size() + MAX_PAYLOAD_SIZE - 1) / MAX_PAYLOAD_SIZE;
+
+    for(size_t i = 0; i < totalFragments; i++){
+        size_t start = i * MAX_PAYLOAD_SIZE;
+        size_t len = data.empty() ? 0 : std::min(MAX_PAYLOAD_SIZE, data.size() - start);
+
+        Packet p;
+        p.header.version = 1;
+        p.header.messageId = messageId;
+        p.header.streamId = streamId;
+        p.header.fragmentIndex = static_cast<uint16_t>(i);
+        p.header.totalFragments = static_cast<uint16_t>(totalFragments);
+        p.header.payloadLength = static_cast<uint8_t>(len);
+        p.payload.assign(data.begin() + static_cast<long>(start), data.begin() + static_cast<long>(start + len));
+        packets.push_back(std::move(p));
+    }
+
+    return packets;
+}`,
+      },
     ],
     tags: ['CMake', 'RLE', 'Rice coding', 'CRC-16', 'LoRa roadmap'],
     repository: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression',
