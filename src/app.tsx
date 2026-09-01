@@ -130,35 +130,7 @@ function HomePage() {
       </div>
     </section>
 
-    <section className="capabilities" aria-labelledby="capabilities-title">
-      <div className="section-label"><span>02 / Capabilities</span><p>Comfortable moving from a physical signal to a software model, then proving the path back to reality.</p></div>
-      <div className="capability-layout">
-        <h2 id="capabilities-title">Build the loop.<br /><em>Measure the result.</em></h2>
-        <div className="capability-list">
-          <article><span>01</span><div><h3>Embedded control</h3><p>ESP32 and Arduino development, sensor calibration, PWM motor drive, PID tuning, and serial diagnostics.</p></div></article>
-          <article><span>02</span><div><h3>Data &amp; telemetry</h3><p>Compact representations, RLE and entropy coding, packet formats, integrity checks, reassembly, and link-aware design.</p></div></article>
-          <article><span>03</span><div><h3>Software architecture</h3><p>Modern C++, CMake, modular interfaces, explicit wire contracts, unit tests, and maintainable boundaries between subsystems.</p></div></article>
-          <article><span>04</span><div><h3>Web systems</h3><p>TypeScript, React, GitHub Actions, static deployment, accessible interfaces, and security-conscious delivery.</p></div></article>
-        </div>
-      </div>
-      <div className="tool-rail" aria-label="Tools and technologies"><span>C++17</span><span>ESP32</span><span>CMake</span><span>Arduino</span><span>Git</span><span>TypeScript</span><span>React</span><span>GitHub Actions</span></div>
-    </section>
-
-    <section className="about" id="about" aria-labelledby="about-title">
-      <div className="about-index">03 / ABOUT</div>
-      <div className="about-copy">
-        <p className="kicker"><span /> Systems-minded engineering</p>
-        <h2 id="about-title">I like projects where software has to answer to the physical world.</h2>
-        <p>My work sits where sensing, computation, and communication meet. I’m interested in robotics and autonomous systems—especially the details that turn a promising demo into a dependable system: calibration, bandwidth, error handling, testability, and clear interfaces.</p>
-        <p>Right now I’m extending an occupancy-grid telemetry stack toward adaptive compression, LoRa transport, retransmission, and hardware-in-the-loop testing.</p>
-      </div>
-      <aside className="principles" aria-label="Engineering principles">
-        <p>WORKING PRINCIPLES</p>
-        <ol><li><span>01</span>Make the data path explicit.</li><li><span>02</span>Measure before optimizing.</li><li><span>03</span>Design failures into the test plan.</li><li><span>04</span>Keep hardware replaceable.</li></ol>
-      </aside>
-    </section>
-
-    <ContactSection index="04" />
+    
     <Footer />
   </main>;
 }
