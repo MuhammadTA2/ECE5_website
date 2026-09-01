@@ -202,7 +202,7 @@ export const projects: Project[] = [
   {
     slug: 'pid-line-following-robot',
     name: 'PID Line-Following Robot',
-    eyebrow: 'ESP32 · CONTROL · SENSING',
+    eyebrow: 'ESP32 · CONTROL · SENSING · SOLDERING',
     summary: 'Closed-loop motor control driven by a calibrated seven-photoresistor sensor array.',
     overview: [
       'The firmware calibrates its sensor array against the course, converts the readings into a weighted line-error signal, and continuously adjusts two motors with PID control.',
@@ -215,6 +215,31 @@ export const projects: Project[] = [
     ],
     tags: ['Arduino C++', 'PID', 'PWM', 'Calibration'],
     repository: 'https://github.com/MuhammadTA2/ece5RobotCode',
-    gallery: [],
+gallery: [
+  {
+    type: 'image',
+    src: 'projects/pid-line-following-robot/chassis-model.jpg',
+    alt: 'Onshape CAD model of the proposed line-following robot chassis and front sensor array',
+    caption: 'CAD concept for the custom chassis and front-mounted sensor array.',
   },
-];
+  {
+    type: 'image',
+    src: 'projects/pid-line-following-robot/breadboarded-prototype.jpg',
+    alt: 'Breadboarded PID line-following robot prototype on a lab bench with an ESP32, photoresistors, wheels, and wire harness',
+    caption: 'Early breadboarded prototype used to bring up the ESP32, sensor array, and motor drive.',
+  },
+  {
+    type: 'image',
+    src: 'projects/pid-line-following-robot/tin-light-shield.jpg',
+    alt: 'Line-following robot prototype following a black tape track with a foil light shield around the front sensor array',
+    caption: 'Temporary foil light shield added around the front sensor array to reduce ambient-light interference.',
+  },
+  {
+    type: 'video',
+    src: 'projects/pid-line-following-robot/first-pid-test.mp4',
+    poster: 'projects/pid-line-following-robot/tin-light-shield.jpg',
+    title: 'First PID line-following test',
+    caption: 'First closed-loop test of the PID line-following controller on the taped course.',
+    portrait: true,
+  },
+],
