@@ -150,10 +150,10 @@ export const projects: Project[] = [
     previewImage: 'projects/occupancy-grid-compression/hardware-overview.jpg',
     gallery: [
       {
-        type: 'image',
-        src: 'projects/occupancy-grid-compression/hardware-overview.jpg',
-        alt: 'Four-wheel omnidirectional robot platform on a laboratory workbench',
-        caption: 'Robot platform used for mapping and telemetry experiments.',
+        type: 'video',
+        src: 'public/projects/occupancy-grid-compression/oc-intro.mp4',
+        alt: 'Intro video',
+        caption: 'Introduction to Kratos and our team.',
         wide: true,
       },
       {
