@@ -147,7 +147,7 @@ export const projects: Project[] = [
     tags: ['CMake', 'RLE', 'Rice coding', 'CRC-16', 'LoRa roadmap'],
     repository: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression',
     featured: true,
-    previewImage: 'projects/occupancy-grid-compression/hardware-overview.jpg',
+    previewImage: 'projects/occupancy-grid-compression/oc-intro-poster.png',
     gallery: [
       {
         type: 'video',
