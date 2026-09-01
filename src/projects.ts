@@ -279,98 +279,237 @@ export const projects: Project[] = [
   },
 
   {
-    slug: 'pid-line-following-robot',
-    name: 'PID Line-Following Robot',
-    eyebrow: 'ESP32 · CONTROL · SENSING · SOLDERING',
+  slug: 'pid-line-following-robot',
+  name: 'PID Line-Following Robot',
+  eyebrow: 'ESP32 · CONTROL · SENSING · SOLDERING',
 
-    summary:
-      'Closed-loop motor control driven by a calibrated seven-photoresistor sensor array.',
+  summary:
+    'Closed-loop motor control driven by a calibrated seven-photoresistor sensor array.',
 
-    overview: [
-      'The firmware calibrates its sensor array against the course, converts the readings into a weighted line-error signal, and continuously adjusts two motors with PID control.',
-      'Serial diagnostics expose sensor values and controller behavior during tuning, while PWM output translates the calculated correction into real-time motion.',
-    ],
+  overview: [
+    'The firmware calibrates its sensor array against the course, converts the readings into a weighted line-error signal, and continuously adjusts two motors with PID control.',
+    'Serial diagnostics expose sensor values and controller behavior during tuning, while PWM output translates the calculated correction into real-time motion.',
+  ],
 
-    sections: [
-      {
-        eyebrow: 'THE SIGNAL',
-        title: 'Seven sensors become one error value.',
-        body:
-          'Calibration establishes the light and dark range for each photoresistor. Normalized readings are combined into a weighted position estimate that tells the controller how far the robot is from the line.',
-      },
+  sections: [
+    {
+      eyebrow: 'THE SIGNAL',
+      title: 'Seven sensors become one error value.',
+      body:
+        'Calibration establishes the light and dark range for each photoresistor. Normalized readings are combined into a weighted position estimate that tells the controller how far the robot is from the line.',
+    },
+    {
+      eyebrow: 'THE LOOP',
+      title: 'Correction becomes motion.',
+      body:
+        'A PID controller turns the latest line error into a steering correction. Differential PWM commands speed one motor while slowing the other, continuously pulling the chassis back toward the path.',
+    },
+    {
+      eyebrow: 'THE TUNING',
+      title: 'Diagnostics make behavior visible.',
+      body:
+        'Serial output exposes live sensor and controller values during calibration and tuning, connecting visible robot behavior to the numbers that produced it.',
+    },
+  ],
 
-      {
-        eyebrow: 'THE LOOP',
-        title: 'Correction becomes motion.',
-        body:
-          'A PID controller turns the latest line error into a steering correction. Differential PWM commands speed one motor while slowing the other, continuously pulling the chassis back toward the path.',
-      },
+  codeHighlights: [
+    {
+      eyebrow: 'SENSING / ERROR ESTIMATION',
+      title: 'Convert seven photoresistors into one line error.',
+      description:
+        'The controller identifies the strongest sensor response, includes its neighboring sensors, and computes a weighted position estimate. The result becomes the signed error used by the PID controller.',
+      language: 'Arduino C++',
+      file: 'Line Following Robot PID',
+      sourceUrl: 'https://github.com/MuhammadTA2/ece5RobotCode/blob/main/LF_original.ino',
+      startLine: 295,
+      code: `void CalcError() {
+  MxRead = -99;
+  AveRead = 0.0;
 
-      {
-        eyebrow: 'THE TUNING',
-        title: 'Diagnostics make behavior visible.',
-        body:
-          'Serial output exposes live sensor and controller values during calibration and tuning, connecting visible robot behavior to the numbers that produced it.',
-      },
-    ],
+  for (int i = 0; i < totalPhotoResistors; i++) {
+    if (MxRead < LDR[i]) {
+      MxRead = LDR[i];
+      MxIndex = -1 * (i - 3);
+      highestPResistor = (float)i;
+    }
 
-    tags: [
-      'Arduino C++',
-      'ESP32',
-      'PID',
-      'PWM',
-      'Calibration',
-      'Soldering',
-    ],
+    AveRead =
+      AveRead +
+      (float)LDR[i] / (float)totalPhotoResistors;
+  }
 
-    repository:
-      'https://github.com/MuhammadTA2/ece5RobotCode',
+  CriteriaForMax = 1.5;
 
-    previewImage:
-      'projects/pid-line-following-robot/tin-lightshield.jpg',
+  if (MxRead > CriteriaForMax * AveRead) {
 
-    gallery: [
-      {
-        type: 'image',
-        src:
-          'projects/pid-line-following-robot/chassis-model.jpg',
-        alt:
-          'Onshape CAD model of the proposed line-following robot chassis and front sensor array',
-        caption:
-          'CAD concept for the custom chassis and front-mounted sensor array.',
-      },
+    if (highestPResistor != 0)
+      leftHighestPR = highestPResistor - 1;
+    else
+      leftHighestPR = highestPResistor;
 
-      {
-        type: 'image',
-        src:
-          'projects/pid-line-following-robot/breadboarded-prototype.jpg',
-        alt:
-          'Breadboarded PID line-following robot prototype on a lab bench with an ESP32, photoresistors, wheels, and wire harness',
-        caption:
-          'Early breadboarded prototype used to bring up the ESP32, sensor array, and motor drive.',
-      },
+    if (highestPResistor != totalPhotoResistors - 1)
+      rightHighestPR = highestPResistor + 1;
+    else
+      rightHighestPR = highestPResistor;
 
-      {
-        type: 'image',
-        src:
-          'projects/pid-line-following-robot/tin-lightshield.jpg',
-        alt:
-          'Line-following robot prototype following a black tape track with a foil light shield around the front sensor array',
-        caption:
-          'Temporary foil light shield added around the front sensor array to reduce ambient-light interference.',
-      },
+    float numerator =
+      (float)(LDR[leftHighestPR] * leftHighestPR) +
+      (float)(LDR[highestPResistor] * highestPResistor) +
+      (float)(LDR[rightHighestPR] * rightHighestPR);
 
-      {
-        type: 'video',
-        src:
-          'projects/pid-line-following-robot/first-pid-test.mp4',
-        poster:
-          'projects/pid-line-following-robot/first-test-poster.png',
-        title: 'First PID line-following test',
-        caption:
-          'First closed-loop test of the PID line-following controller on the taped course.',
-        portrait: true,
-      },
-    ],
-  },
-];
+    float denominator =
+      (float)LDR[leftHighestPR] +
+      (float)LDR[highestPResistor] +
+      (float)LDR[rightHighestPR];
+
+    WeightedAve = numerator / denominator;
+
+    error =
+      WeightedAve -
+      totalPhotoResistors / 2;
+  }
+}`,
+    },
+
+    {
+      eyebrow: 'CONTROL / PID',
+      title: 'Turn line error into a steering correction.',
+      description:
+        'The proportional term reacts to current position error, the integral term accumulates persistent bias, and the derivative term responds to changes in error. Integral limiting helps prevent windup.',
+      language: 'Arduino C++',
+      file: 'Line Following Robot PID',
+      sourceUrl: 'https://github.com/MuhammadTA2/ece5RobotCode/blob/main/LF_original.ino',
+      startLine: 335,
+      code: `void PID_Turn() {
+  kP = (float)kPRead * 1.;
+  kI = (float)kIRead * 0.001;
+  kD = (float)kDRead * 0.01;
+
+  Turn =
+    error * kP +
+    sumerror * kI +
+    (error - lasterror) * kD;
+
+  if (sumerror > 5)
+    sumerror = 5;
+  else if (sumerror < -5)
+    sumerror = -5;
+
+  if (error == 0)
+    sumerror = 0;
+
+  if (Turn < 0) {
+    M1P = -Turn;
+    M2P = Turn;
+  }
+  else if (Turn > 0) {
+    M1P = -Turn;
+    M2P = Turn;
+  }
+  else {
+    M1P = 0;
+    M2P = 0;
+  }
+
+  lasterror = error;
+  sumerror = sumerror + error;
+}`,
+    },
+
+    {
+      eyebrow: 'ACTUATION / PWM',
+      title: 'Translate controller output into motor motion.',
+      description:
+        'Each motor is driven through two ESP32 PWM outputs. The sign of the requested speed selects motor direction while the magnitude determines PWM duty cycle.',
+      language: 'Arduino C++',
+      file: 'Line Following Robot PID',
+      sourceUrl: 'https://github.com/MuhammadTA2/ece5RobotCode/blob/main/LF_original.ino',
+      startLine: 270,
+      code: `void runMotorAtSpeed(side _side, int speed) {
+
+  if (_side == LEFT) {
+
+    if (speed > 0) {
+      ledcWrite(M1H, speed);
+      ledcWrite(M1L, 0);
+    }
+    else {
+      ledcWrite(M1H, 0);
+      ledcWrite(M1L, abs(speed));
+    }
+  }
+
+  if (_side == RIGHT) {
+
+    if (speed > 0) {
+      ledcWrite(M2H, speed);
+      ledcWrite(M2L, 0);
+    }
+    else {
+      ledcWrite(M2H, 0);
+      ledcWrite(M2L, abs(speed));
+    }
+  }
+}`,
+    },
+  ],
+
+  tags: [
+    'Arduino C++',
+    'ESP32',
+    'PID',
+    'PWM',
+    'Calibration',
+    'Soldering',
+  ],
+
+  repository:
+    'https://github.com/MuhammadTA2/ece5RobotCode',
+
+  previewImage:
+    'projects/pid-line-following-robot/tin-lightshield.jpg',
+
+  gallery: [
+    {
+      type: 'image',
+      src:
+        'projects/pid-line-following-robot/chassis-model.jpg',
+      alt:
+        'Onshape CAD model of the proposed line-following robot chassis and front sensor array',
+      caption:
+        'CAD concept for the custom chassis and front-mounted sensor array.',
+    },
+
+    {
+      type: 'image',
+      src:
+        'projects/pid-line-following-robot/breadboarded-prototype.jpg',
+      alt:
+        'Breadboarded PID line-following robot prototype on a lab bench with an ESP32, photoresistors, wheels, and wire harness',
+      caption:
+        'Early breadboarded prototype used to bring up the ESP32, sensor array, and motor drive.',
+    },
+
+    {
+      type: 'image',
+      src:
+        'projects/pid-line-following-robot/tin-lightshield.jpg',
+      alt:
+        'Line-following robot prototype following a black tape track with a foil light shield around the front sensor array',
+      caption:
+        'Temporary foil light shield added around the front sensor array to reduce ambient-light interference.',
+    },
+
+    {
+      type: 'video',
+      src:
+        'projects/pid-line-following-robot/first-pid-test.mp4',
+      poster:
+        'projects/pid-line-following-robot/tin-lightshield.jpg',
+      title: 'First PID line-following test',
+      caption:
+        'First closed-loop test of the PID line-following controller on the taped course.',
+      portrait: true,
+    },
+  ],
+},
