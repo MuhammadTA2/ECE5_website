@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { projects } from '../src/projects';
 
 const root = resolve(import.meta.dirname, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
@@ -21,7 +22,24 @@ describe('static portfolio', () => {
     expect(app).toContain("path.startsWith('projects/')");
     expect(app).toContain('project.gallery.map');
     expect(projects).toContain('previewImage?: string');
-    expect(projects).toContain('gallery: ProjectImage[]');
+    expect(projects).toContain('gallery: ProjectMedia[]');
+    expect(projects).toContain("type: 'video'");
+    expect(app).toContain('<video controls preload="metadata"');
+  });
+
+  it('ships every configured project asset and keeps videos browser-uploadable', () => {
+    const occupancyProject = projects.find((project) => project.slug === 'occupancy-grid-compression');
+    expect(occupancyProject).toBeDefined();
+    expect(occupancyProject?.previewImage).toBeTruthy();
+
+    for (const media of occupancyProject?.gallery ?? []) {
+      const mediaPath = resolve(root, 'public', media.src);
+      expect(existsSync(mediaPath), `${media.src} should exist`).toBe(true);
+      if (media.type === 'video') {
+        expect(statSync(mediaPath).size).toBeLessThan(25 * 1024 * 1024);
+        expect(existsSync(resolve(root, 'public', media.poster)), `${media.poster} should exist`).toBe(true);
+      }
+    }
   });
 
   it('has no authentication, database, or external runtime dependency', () => {

@@ -262,9 +262,17 @@ function ProjectPage({ project }: { project: Project }) {
 
       {project.gallery.length > 0 && <section className="project-gallery" aria-labelledby="gallery-title">
         <div className="section-label"><span>MEDIA / BUILD LOG</span><h2 id="gallery-title">Process &amp; details.</h2></div>
-        <div className="gallery-grid">{project.gallery.map((image, imageIndex) => <figure key={image.src} className={imageIndex % 3 === 0 ? 'wide' : ''}>
-          <img src={assetUrl(image.src)} alt={image.alt} loading="lazy" />
-          {image.caption && <figcaption><span>{String(imageIndex + 1).padStart(2, '0')}</span>{image.caption}</figcaption>}
+        <div className="gallery-grid">{project.gallery.map((media, mediaIndex) => <figure key={media.src} className={`${media.wide ? 'wide' : ''} ${media.type === 'video' ? 'video-item' : 'image-item'} ${media.type === 'video' && media.portrait ? 'portrait' : ''}`}>
+          {media.type === 'video'
+            ? <video controls preload="metadata" poster={assetUrl(media.poster)} playsInline aria-label={media.title}>
+                <source src={assetUrl(media.src)} type="video/mp4" />
+                Your browser does not support embedded MP4 video.
+              </video>
+            : <img src={assetUrl(media.src)} alt={media.alt} loading="lazy" />}
+          {media.caption && <figcaption>
+            <span>{String(mediaIndex + 1).padStart(2, '0')}</span>
+            <div><p>{media.caption}</p>{media.type === 'video' && <a href={assetUrl(media.src)} download>Download MP4 ↓</a>}</div>
+          </figcaption>}
         </figure>)}</div>
       </section>}
 

@@ -1,8 +1,20 @@
-export type ProjectImage = {
-  src: string;
-  alt: string;
-  caption?: string;
-};
+export type ProjectMedia =
+  | {
+      type: 'image';
+      src: string;
+      alt: string;
+      caption?: string;
+      wide?: boolean;
+    }
+  | {
+      type: 'video';
+      src: string;
+      poster: string;
+      title: string;
+      caption?: string;
+      wide?: boolean;
+      portrait?: boolean;
+    };
 
 export type Project = {
   slug: string;
@@ -19,7 +31,7 @@ export type Project = {
   repository?: string;
   featured?: boolean;
   previewImage?: string;
-  gallery: ProjectImage[];
+  gallery: ProjectMedia[];
 };
 
 // Add future projects here. Put images in public/projects/<project-slug>/,
@@ -42,7 +54,54 @@ export const projects: Project[] = [
     tags: ['CMake', 'RLE', 'Rice coding', 'CRC-16', 'LoRa roadmap'],
     repository: 'https://github.com/MuhammadTA2/Occupancy-Grid-Compression',
     featured: true,
-    gallery: [],
+    previewImage: 'projects/occupancy-grid-compression/hardware-overview.jpg',
+    gallery: [
+      {
+        type: 'image',
+        src: 'projects/occupancy-grid-compression/hardware-overview.jpg',
+        alt: 'Four-wheel omnidirectional robot platform on a laboratory workbench',
+        caption: 'Robot platform used for mapping and telemetry experiments.',
+        wide: true,
+      },
+      {
+        type: 'video',
+        src: 'projects/occupancy-grid-compression/hardware-demo-02.mp4',
+        poster: 'projects/occupancy-grid-compression/hardware-demo-02-poster.jpg',
+        title: 'Omnidirectional robot laboratory test',
+        caption: 'The mobile robot operating during a laboratory test.',
+        portrait: true,
+      },
+      {
+        type: 'image',
+        src: 'projects/occupancy-grid-compression/hardware-detail.jpg',
+        alt: 'Top-down view of the robot electronics, ESP32, breadboards, wiring, and battery packs',
+        caption: 'ESP32 control electronics, motor wiring, and onboard power.',
+      },
+      {
+        type: 'video',
+        src: 'projects/occupancy-grid-compression/compression-software-demo.mp4',
+        poster: 'projects/occupancy-grid-compression/compression-software-demo-poster.jpg',
+        title: 'Occupancy-grid mapping presentation',
+        caption: 'Mapping concepts and the compression workflow explained onscreen.',
+        wide: true,
+      },
+      {
+        type: 'video',
+        src: 'projects/occupancy-grid-compression/compression-walkthrough.mp4',
+        poster: 'projects/occupancy-grid-compression/compression-walkthrough-poster.jpg',
+        title: 'Compression implementation walkthrough',
+        caption: 'Source-level walkthrough of the compression and transport implementation.',
+        wide: true,
+      },
+      {
+        type: 'video',
+        src: 'projects/occupancy-grid-compression/hardware-demo-01.mp4',
+        poster: 'projects/occupancy-grid-compression/hardware-demo-01-poster.jpg',
+        title: 'Additional project footage',
+        caption: 'Additional footage recorded during the project build.',
+        wide: true,
+      },
+    ],
   },
   {
     slug: 'pid-line-following-robot',

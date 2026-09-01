@@ -9,7 +9,8 @@ public/projects/your-project-slug/
 ├── preview.jpg
 ├── build-01.jpg
 ├── build-02.jpg
-└── result.jpg
+├── demo-poster.jpg
+└── demo.mp4
 ```
 
-Use web-friendly JPG, PNG, AVIF, or WebP files. Preview images work best at a landscape ratio around 3:2; gallery images may use any ratio.
+Use web-friendly JPG, PNG, AVIF, or WebP images and H.264/AAC MP4 videos. Preview images work best around a 3:2 landscape ratio. Keep each video below 25 MiB for GitHub browser uploads and always provide a poster image.
