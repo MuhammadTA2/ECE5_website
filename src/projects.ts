@@ -151,12 +151,13 @@ export const projects: Project[] = [
     gallery: [
       {
         type: 'video',
-        src: 'public/projects/occupancy-grid-compression/oc-intro.mp4',
-        poster:'public/projects/occupancy-grid-compression/oc-intro-poster.png',
-        alt: 'Intro video',
+        src: 'projects/occupancy-grid-compression/oc-intro.mp4',
+        poster: 'projects/occupancy-grid-compression/oc-intro-poster.png',
+        title: 'Kratos introduction',
         caption: 'Introduction to Kratos and our team.',
         wide: true,
       },
+      
       {
         type: 'video',
         src: 'projects/occupancy-grid-compression/hardware-demo-02.mp4',
@@ -165,6 +166,7 @@ export const projects: Project[] = [
         caption: 'The mobile robot operating during a laboratory test.',
         portrait: true,
       },
+      
       {
         type: 'image',
         src: 'projects/occupancy-grid-compression/hardware-detail.jpg',
