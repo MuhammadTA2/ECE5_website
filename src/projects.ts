@@ -243,3 +243,4 @@ gallery: [
     portrait: true,
   },
 ],
+  };
