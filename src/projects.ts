@@ -236,7 +236,7 @@ gallery: [
   },
   {
     type: 'video',
-    src: 'projects/pid-line-following-robot/first-pid-test.mp4',
+    src: 'public/projects/pid-line-following-robot/first-test-PID (1) (1).mp4',
     poster: 'projects/pid-line-following-robot/tin-light-shield.jpg',
     title: 'First PID line-following test',
     caption: 'First closed-loop test of the PID line-following controller on the taped course.',
