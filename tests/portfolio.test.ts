@@ -28,16 +28,16 @@ describe('static portfolio', () => {
   });
 
   it('ships every configured project asset and keeps videos browser-uploadable', () => {
-    const occupancyProject = projects.find((project) => project.slug === 'occupancy-grid-compression');
-    expect(occupancyProject).toBeDefined();
-    expect(occupancyProject?.previewImage).toBeTruthy();
+    for (const project of projects) {
+      expect(project.previewImage, `${project.slug} should have a preview image`).toBeTruthy();
 
-    for (const media of occupancyProject?.gallery ?? []) {
-      const mediaPath = resolve(root, 'public', media.src);
-      expect(existsSync(mediaPath), `${media.src} should exist`).toBe(true);
-      if (media.type === 'video') {
-        expect(statSync(mediaPath).size).toBeLessThan(25 * 1024 * 1024);
-        expect(existsSync(resolve(root, 'public', media.poster)), `${media.poster} should exist`).toBe(true);
+      for (const media of project.gallery) {
+        const mediaPath = resolve(root, 'public', media.src);
+        expect(existsSync(mediaPath), `${media.src} should exist`).toBe(true);
+        if (media.type === 'video') {
+          expect(statSync(mediaPath).size).toBeLessThan(25 * 1024 * 1024);
+          expect(existsSync(resolve(root, 'public', media.poster)), `${media.poster} should exist`).toBe(true);
+        }
       }
     }
   });

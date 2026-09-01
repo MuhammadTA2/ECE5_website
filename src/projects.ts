@@ -503,9 +503,9 @@ export const projects: Project[] = [
     {
       type: 'video',
       src:
-        'projects/pid-line-following-robot/first-pid-test.mp4',
+        'projects/pid-line-following-robot/first-test-PID.mp4',
       poster:
-        'projects/pid-line-following-robot/tin-lightshield.jpg',
+        'projects/pid-line-following-robot/first-test-poster.png',
       title: 'First PID line-following test',
       caption:
         'First closed-loop test of the PID line-following controller on the taped course.',
