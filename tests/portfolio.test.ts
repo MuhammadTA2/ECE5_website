@@ -27,6 +27,14 @@ describe('static portfolio', () => {
     expect(app).toContain('<video controls preload="metadata"');
   });
 
+  it('ends the homepage after selected projects', () => {
+    const app = read('src/app.tsx');
+    expect(app).not.toContain('02 / Capabilities');
+    expect(app).not.toContain('03 / ABOUT');
+    expect(app).not.toContain('LET’S BUILD');
+    expect(app).not.toContain('#/about');
+  });
+
   it('ships every configured project asset and keeps videos browser-uploadable', () => {
     for (const project of projects) {
       expect(project.previewImage, `${project.slug} should have a preview image`).toBeTruthy();

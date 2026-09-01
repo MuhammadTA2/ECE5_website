@@ -5,14 +5,13 @@ const githubProfile = 'https://github.com/MuhammadTA2';
 const siteUrl = 'https://muhammadta2.github.io/portfolio-web/';
 
 type Route =
-  | { kind: 'home'; section?: 'about' }
+  | { kind: 'home' }
   | { kind: 'projects' }
   | { kind: 'project'; slug: string; project?: Project };
 
 function getRoute(): Route {
   const path = window.location.hash.replace(/^#\/?/, '').replace(/\/$/, '');
   if (path === 'projects') return { kind: 'projects' };
-  if (path === 'about') return { kind: 'home', section: 'about' };
   if (path.startsWith('projects/')) {
     const slug = decodeURIComponent(path.slice('projects/'.length));
     return { kind: 'project', slug, project: projects.find((item) => item.slug === slug) };
@@ -65,11 +64,7 @@ export function App() {
     setMeta('twitter:image', projectImage);
     setPropertyMeta('og:image', projectImage);
 
-    if (route.kind === 'home' && route.section === 'about') {
-      window.setTimeout(() => document.getElementById('about')?.scrollIntoView(), 0);
-    } else {
-      window.scrollTo({ top: 0 });
-    }
+    window.scrollTo({ top: 0 });
   }, [route]);
 
   if (route.kind === 'projects') return <ProjectsPage />;
@@ -87,7 +82,6 @@ function SiteHeader({ active }: { active: 'home' | 'projects' }) {
     <nav aria-label="Primary navigation">
       <a className={active === 'home' ? 'active' : ''} href="#/" aria-current={active === 'home' ? 'page' : undefined}>Home</a>
       <a className={active === 'projects' ? 'active' : ''} href="#/projects" aria-current={active === 'projects' ? 'page' : undefined}>Projects <sup>{String(projects.length).padStart(2, '0')}</sup></a>
-      <a href="#/about">About</a>
       <a className="nav-cta" href={githubProfile} target="_blank" rel="noreferrer">GitHub ↗</a>
     </nav>
   </header>;
@@ -274,14 +268,6 @@ function NotFoundPage() {
     <section><p>404 / PROJECT NOT FOUND</p><h1>This build isn’t in the archive.</h1><a className="button button-primary" href="#/projects">Browse all projects <span>→</span></a></section>
     <Footer />
   </main>;
-}
-
-function ContactSection({ index }: { index: string }) {
-  return <section className="contact" aria-labelledby="contact-title">
-    <p>{index} / LET’S BUILD</p>
-    <h2 id="contact-title">Have a hard systems problem?</h2>
-    <div><p>Explore the code, follow the work, or reach out through GitHub.</p><a className="button contact-button" href={githubProfile} target="_blank" rel="noreferrer">Open GitHub profile <span>↗</span></a></div>
-  </section>;
 }
 
 function Footer() {
