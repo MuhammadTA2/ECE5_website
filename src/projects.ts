@@ -152,6 +152,7 @@ export const projects: Project[] = [
       {
         type: 'video',
         src: 'public/projects/occupancy-grid-compression/oc-intro.mp4',
+        poster:'public/projects/occupancy-grid-compression/oc-intro-poster.png',
         alt: 'Intro video',
         caption: 'Introduction to Kratos and our team.',
         wide: true,
